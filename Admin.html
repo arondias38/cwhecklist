@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <title>체크리스트 관리자 모드</title>
+
+  <link rel="icon" href="https://i.imgur.com/3BjtJBH.png">
+  
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <style>
+    @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css");
+    body { font-family: 'Pretendard', 'Malgun Gothic', sans-serif; margin: 0; padding: 0; background-color: #f4f6f9; color: #333; }
+    
+    .spinner-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.7); z-index: 9999; justify-content: center; align-items: center; flex-direction: column; }
+    .spinner { width: 50px; height: 50px; border: 5px solid #f3f3f3; border-top: 5px solid #1366ce; border-radius: 50%; animation: spin 1s linear infinite; }
+    .spinner-text { margin-top: 15px; font-weight: bold; color: #1366ce; font-size: 15px; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; justify-content: center; align-items: center; }
+    .modal-box { background: white; width: 340px; border-radius: 12px; padding: 25px 20px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+    .modal-message { font-size: 15px; font-weight: 600; color: #333; line-height: 1.5; margin-bottom: 20px; white-space: pre-wrap; word-break: keep-all; }
+    .prompt-input { width: 80%; padding: 10px; margin-bottom: 20px; border: 1px solid #ced4da; border-radius: 6px; font-size: 16px; font-weight: bold; text-align: center; outline: none; font-family: 'Pretendard', sans-serif; letter-spacing: 2px; }
+    .prompt-input::placeholder { color: #b0b0b0; font-weight: normal; }
+    .prompt-input:focus { border-color: #1366ce; box-shadow: 0 0 0 3px rgba(19,102,206,0.2); }
+    
+    .modal-buttons { display: flex; justify-content: center; gap: 10px; }
+    .modal-btn { padding: 10px 20px; border: none; border-radius: 50px; font-weight: bold; font-size: 14px; cursor: pointer; flex: 1; transition: 0.2s; }
+    .btn-ok { background-color: #1366ce; color: white; } .btn-ok:hover { background-color: #0f52a8; }
+    .btn-no { background-color: #f1f3f5; color: #495057; } .btn-no:hover { background-color: #e2e6ea; }
+    .btn-yes { background-color: #1366ce; color: white; } .btn-yes:hover { background-color: #0f52a8; }
+
+    .history-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 10001; justify-content: center; align-items: center; }
+    .history-box { background: white; width: 90%; max-width: 800px; max-height: 80vh; border-radius: 8px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); display: flex; flex-direction: column; }
+    .history-header { font-size: 16px; font-weight: 800; color: #1a3978; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+    .history-close-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: #888; }
+    .history-close-btn:hover { color: #333; }
+    .history-content { overflow-y: auto; flex: 1; border-top: 1px solid #eaeaea; border-bottom: 1px solid #eaeaea; }
+    
+    /* 🔴 [수정 완료] margin-bottom: 0 추가로 하단 테두리 들뜸 현상 완벽 밀착 */
+    .history-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 0; }
+    .history-table th { background-color: #f8f9fa; font-weight: bold; padding: 10px 8px; text-align: center; border-bottom: 1px solid #eaeaea; border-right: 1px solid #eaeaea; color: #333; position: sticky; top: 0; z-index: 2; border-top: none; border-left: none; }
+    .history-table td { padding: 8px; text-align: center; border-bottom: 1px solid #eaeaea; border-right: 1px solid #eaeaea; vertical-align: middle; border-top: none; border-left: none; }
+    .history-table th:last-child, .history-table td:last-child { border-right: none; }
+    .history-table tr:last-child td { border-bottom: none; }
+    .history-note { text-align: left !important; white-space: pre-wrap; word-break: break-all; max-height: 80px; overflow-y: auto; display: block; line-height: 1.4; padding: 0 4px; }
+
+    .matrix-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10002; justify-content: center; align-items: center; }
+    .matrix-box { background: white; width: 95%; max-width: 1100px; max-height: 85vh; border-radius: 8px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); display: flex; flex-direction: column; box-sizing: border-box; }
+    .matrix-header { font-size: 18px; font-weight: 900; color: #1a3978; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #1a3978; padding-bottom: 10px; }
+    .matrix-close-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: #888; }
+    .matrix-close-btn:hover { color: #333; }
+    .matrix-content { overflow-y: auto; flex: 1; }
+    .matrix-month-title { font-size: 16px; font-weight: 800; color: #495057; margin: 20px 0 10px 0; border-left: 4px solid #d32f2f; padding-left: 8px; }
+    
+    .matrix-table-wrap { width: 100%; overflow-x: auto; background: transparent; margin-bottom: 15px; padding: 0 15px 0 0; box-sizing: border-box; }
+    .matrix-table { width: auto; border-collapse: collapse; font-size: 12px; text-align: center; margin: 0; border-top: 1px solid #eaeaea; border-bottom: 1px solid #eaeaea; }
+    .matrix-table th, .matrix-table td { border-top: none; border-left: none; border-bottom: 1px solid #eaeaea; border-right: 1px solid #eaeaea; }
+    /* 🔴 [수정 완료] 배경색에 묻히지 않도록 머릿글(th) 전용으로 약간 짙은 테두리(#ced4da) 부여 */
+    .matrix-table th { background-color: #e9ecef; font-weight: bold; padding: 8px 4px; color: #333; position: sticky; top: 0; z-index: 2; border-bottom: 1px solid #ced4da; border-right: 1px solid #ced4da; }
+    .matrix-table td { padding: 6px 4px; vertical-align: middle; }
+    .matrix-table th:last-child, .matrix-table td:last-child { border-right: none; }
+    .matrix-table tbody tr:last-child td { border-bottom: none; }
+
+    .academy-header-bar { margin-top: 15px; background-color: #495057; color: #ffffff; padding: 10px 25px; font-size: 18px; font-weight: bold; letter-spacing: 0.5px; box-shadow: 0 2px 5px rgba(0,0,0,0.15); display: flex; justify-content: center; align-items: center; position: relative; }
+    .academy-header-bar a { position: absolute; right: 25px; }
+    
+    .app-body { padding: 20px; }
+    
+    .header-bar { background-color: #fff; padding: 15px 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; gap: 20px; align-items: center; margin-bottom: 15px; border-left: 5px solid #d32f2f; flex-wrap: wrap; }
+    .select-group { display: flex; align-items: center; gap: 10px; position: relative; }
+    label { font-weight: bold; font-size: 14px; color: #333; }
+    
+    select { 
+      width: 190px; padding: 8px 12px; border: 1px solid #ced4da; border-radius: 4px; font-family: 'Pretendard', sans-serif; font-size: 14px; font-weight: normal; color: #333; outline: none; height: 38px; box-sizing: border-box; cursor: pointer; 
+      appearance: none; -webkit-appearance: none;
+      background: #fff url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23333"><path d="M7 10l5 5 5-5z"/></svg>') no-repeat right 10px center; background-size: 20px;
+    }
+    select:invalid { color: #888888 !important; font-weight: normal; }
+    select option { color: #000000; font-weight: normal; }
+    
+    .custom-date-wrapper { position: relative; width: 190px; height: 38px; cursor: pointer; overflow: hidden; }
+    .date-display { width: 100%; height: 100%; border: 1px solid #ced4da; border-radius: 4px; padding: 8px 12px; font-family: 'Pretendard', sans-serif; font-size: 14px; font-weight: normal; color: #888888; background: #fff url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23333"><path d="M7 10l5 5 5-5z"/></svg>') no-repeat right 10px center; background-size: 20px; display: flex; align-items: center; box-sizing: border-box; position: absolute; top:0; left:0; z-index: 1; pointer-events: none; }
+    .date-display.selected { color: #333; }
+    .hidden-date-input { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 10; box-sizing: border-box; border: none; padding: 0; margin: 0; }
+    .hidden-date-input::-webkit-calendar-picker-indicator { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; margin: 0; padding: 0; }
+    
+    .btn-search { padding: 0 20px; border: none; border-radius: 50px; font-weight: bold; font-size: 14px; background-color: #1366ce; color: white; transition: 0.2s; height: 38px; cursor: pointer; box-sizing: border-box; }
+    .btn-search:hover { background-color: #0f52a8; }
+    
+    .btn-save-admin { height: 38px; width: 190px; padding: 0; box-sizing: border-box; border: none; border-radius: 50px; font-weight: bold; cursor: pointer; font-size: 14px; background-color: #d32f2f; color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.15); transition: 0.2s; display: none; flex-direction: column; align-items: center; justify-content: center; }
+    .btn-save-admin:hover { background-color: #b71c1c; }
+    
+    .summary-banner { background: #fff; padding: 12px 20px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; font-weight: bold; color: #333; border: 1px solid #dee2e6; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: none; flex-wrap: wrap; gap: 10px; }
+    .summary-card { flex: 0 0 calc(50% - 5px); width: calc(50% - 5px); min-width: 340px; display: flex; align-items: center; background-color: #f8f9fa; border: 1px solid #e9ecef; padding: 6px 12px; border-radius: 6px; box-sizing: border-box; }
+    
+    .t-badge { 
+        background-color: #495057; color: white; border-radius: 4px; font-size: 13px; font-weight: bold; 
+        width: 120px; min-width: 120px; height: 26px; 
+        display: flex; justify-content: center; align-items: center; position: relative; 
+        margin-right: 12px; box-sizing: border-box; flex-shrink: 0; 
+    }
+    .t-badge-btn {
+        position: absolute; right: 0; top: 0; bottom: 0; width: 35px;
+        display: flex; justify-content: center; align-items: center;
+        cursor: pointer; border-radius: 0 4px 4px 0; transition: 0.2s;
+    }
+    .t-badge-btn:hover { background-color: rgba(255,255,255,0.2); }
+    
+    .t-info { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: bold; flex-wrap: wrap; flex: 1; }
+    .t-alert { color: #dc3545; font-weight: 900; }
+    
+    .main-container { background-color: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); min-height: 500px; }
+    .empty-state { display: flex; justify-content: center; align-items: center; color: #888; border: 2px dashed #dee2e6; border-radius: 6px; height: 300px; font-weight: bold; }
+    
+    .teacher-group { margin-bottom: 40px; }
+    .teacher-header { font-size: 18px; font-weight: 900; color: #1a3978; margin-bottom: 15px; border-bottom: 2px solid #1a3978; padding-bottom: 5px; }
+    .class-sub-header { font-size: 15px; font-weight: 700; color: #495057; margin: 15px 0 6px 0; background-color: #f1f3f5; padding: 6px 12px; border-radius: 4px; border-left: 4px solid #1a3978; text-align: left;}
+
+    table { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; margin-bottom: 25px; }
+    th, td { border: 1px solid #dee2e6; padding: 8px 4px; text-align: center; vertical-align: middle; }
+    th { background-color: #f8f9fa; font-weight: bold; color: #333; }
+    
+    .readonly-text { width: 100%; box-sizing: border-box; font-family: 'Pretendard', sans-serif; font-size: 13px; color: #333; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .readonly-note { width: 100%; box-sizing: border-box; font-family: 'Pretendard', sans-serif; font-size: 13px; color: #333; text-align: left; padding: 0 4px; max-height: 40px; overflow-y: auto; overflow-x: hidden; display: block; line-height: 1.4; word-break: break-all; }
+    
+    input[type="checkbox"] { transform: scale(1.3); cursor: pointer; margin: 4px 2px; }
+    .master-checkbox { transform: scale(1.3); margin-top: 12px; cursor: pointer; }
+  </style>
+</head>
+<body>
+
+  <div class="spinner-overlay" id="globalSpinner"><div class="spinner"></div><div class="spinner-text" id="spinnerText">체크리스트 데이터를 불러오는 중입니다.</div></div>
+  
+  <div class="modal-overlay" id="customModalOverlay">
+    <div class="modal-box">
+      <div id="modalMessage" class="modal-message"></div>
+      <input type="password" id="promptModalInput" class="prompt-input" style="display:none;" placeholder="코드 입력">
+      <div class="modal-buttons">
+        <button id="modalBtnNo" class="modal-btn btn-no" style="display:none;">아니오</button>
+        <button id="modalBtnYes" class="modal-btn btn-yes" style="display:none;">예</button>
+        <button id="modalBtnOk" class="modal-btn btn-ok" style="display:inline-block;">확인</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="history-overlay" id="historyOverlay" onclick="if(event.target === this) closeHistoryPopup();">
+    <div class="history-box">
+      <div class="history-header">
+        <span id="historyTitle">학생 기록 조회</span>
+        <button class="history-close-btn" onclick="closeHistoryPopup()">✕</button>
+      </div>
+      <div class="history-content">
+        <table class="history-table">
+          <thead>
+            <tr>
+              <th width="16%">날짜</th>
+              <th width="8%">과제</th>
+              <th width="8%">오답</th>
+              <th width="10%">일일테스트</th>
+              <th width="10%">주간테스트</th>
+              <th width="48%">특이사항</th>
+            </tr>
+          </thead>
+          <tbody id="historyTableBody"></tbody>
+        </table>
+        <div id="historyEmpty" style="display:none; padding: 40px; text-align:center; color:#888; font-weight:bold;">해당 학기의 기록이 없습니다.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="matrix-overlay" id="matrixOverlay" onclick="if(event.target === this) closeMatrixPopup();">
+    <div class="matrix-box">
+      <div class="matrix-header">
+        <span id="matrixTitle">선생님 학기 요약</span>
+        <button class="matrix-close-btn" onclick="closeMatrixPopup()">✕</button>
+      </div>
+      <div class="matrix-content" id="matrixContentArea"></div>
+    </div>
+  </div>
+
+  <div class="academy-header-bar">
+    <span id="mainTitleDisplay">체크리스트 관리자 대시보드</span>
+    <a id="teacherLink" href="#" style="color:#ffffff; text-decoration:none; font-size:14px;" onclick="handleTeacherLinkClick(event)">⬅️ 선생님 모드로 돌아가기</a>
+  </div>
+
+  <div class="app-body">
+    <div class="header-bar">
+
+      <div class="select-group">
+        <label>캠퍼스</label>
+        <select id="campusSelect" onmousedown="this.dataset.prev = this.value;" onchange="handleCampusChange(this)" required>
+          <option value="" disabled selected hidden>캠퍼스 선택</option>
+          <option value="dongtan">SG동탄청운학원</option>
+          <option value="yeongtong">SG영통청운학원</option>
+          <option value="yeongcheon">SG동탄청운학원-영천점</option>
+        </select>
+      </div>
+
+      <div class="select-group">
+        <label>날짜</label>
+        <div class="custom-date-wrapper" onclick="if(checkLockdown(event)) return false; let el=document.getElementById('dateInput'); el.dataset.prev = el.value; if(el.showPicker) el.showPicker();">
+          <div class="date-display" id="dateDisplayUI">날짜를 선택하세요</div>
+          <input type="date" id="dateInput" class="hidden-date-input" onchange="handleDateChangeAdmin(this)" required>
+        </div>
+      </div>
+      <div class="select-group">
+        <label>담임 선택</label>
+        <select id="teacherSelect" onmousedown="if(checkLockdown(event)) return false; this.dataset.prev = this.value;" onchange="handleTeacherChangeAdmin(this)" required disabled><option value="All">All (모든 선생님)</option></select>
+      </div>
+      <button class="btn-search" onclick="handleSearchClickAdmin(event)">명단 조회하기</button>
+      
+      <div id="globalCheckLabel" style="display:none; margin-left:auto; align-items:center; gap:8px;">
+         <label style="font-weight:bold; font-size:14px; color:#1a3978; cursor:pointer; display:flex; align-items:center;">
+           관리자 확인 일괄 적용 <input type="checkbox" style="margin-left:8px;" onchange="toggleAllLeadChecks(this.checked)">
+         </label>
+      </div>
+      
+      <button class="btn-save-admin" id="saveBtn" style="margin-left:15px;" onclick="saveAdminData()">
+        <div style="display:flex; align-items:center; justify-content:center; line-height: 1; margin-top: 9px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>관리자 확인 저장
+        </div>
+        <div style="font-size: 9px; font-weight: normal; color: rgba(255,255,255,0.75); letter-spacing: 0.5px; line-height: 1; margin-top: 2px;">Ctrl + S</div>
+      </button>
+    </div>
+
+    <div class="summary-banner" id="summaryBanner"></div>
+
+    <div class="main-container">
+      <div class="empty-state" id="emptyState">상단의 캠퍼스, 날짜, 담임 항목을 선택 후 [명단 조회하기]를 눌러주세요.</div>
+      <div id="contentArea" style="display:none;"></div>
+    </div>
+  </div>
+
+  <script>
+    const CAMPUS_URLS = {
+      "dongtan": "https://script.google.com/macros/s/AKfycbwMtIkLaAF85AYQgpWXsVmwftBnPKy0tOV65X8zKajto0srs4MM6pA4oRcczZHDqRcXNg/exec",
+      "yeongtong": "https://script.google.com/macros/s/AKfycbwV5hXkSNGT2_jkCrQakQieov2OswU9x-zCBSkquarMujUqoKXdSZO_ih0OyQxftodu/exec",
+      "yeongcheon": "https://script.google.com/macros/s/AKfycbw6lnnvzOvUykYBM32FvNb66m98e0frXWuQPV0bn-GVAfvVcMNR0ne5g04qu-W763_u/exec"
+    };
+
+    function createGoogleScriptMock() {
+        return {
+            withSuccessHandler: function(successCb) { this.successCb = successCb; return this; },
+            withFailureHandler: function(failureCb) { this.failureCb = failureCb; return this; },
+            getInitialData: function() { this._fetch('getInitialData'); },
+            loadAdminWorkflow: function(dateStr, teacherName) { this._fetch('loadAdminWorkflow', {dateStr, teacherName}); },
+            saveAdminChecks: function(updates) { this._fetch('saveAdminChecks', {updates}); },
+            getStudentHistory: function(teacherName, className, studentName, dateStr) { this._fetch('getStudentHistory', {teacherName, className, studentName, dateStr}); },
+            getTeacherMatrixHistory: function(payload) { this._fetch('getTeacherMatrixHistory', payload); },
+            
+            _fetch: async function(action, payload = {}) {
+                const campus = document.getElementById("campusSelect").value;
+                if (!campus) {
+                    if (this.failureCb) this.failureCb(new Error("캠퍼스를 먼저 선택해 주세요."));
+                    else showCustomAlert("캠퍼스를 먼저 선택해 주세요.");
+                    return;
+                }
+                const url = CAMPUS_URLS[campus];
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify({ action: action, ...payload })
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        if (this.successCb) this.successCb(result.data);
+                    } else {
+                        if (this.failureCb) this.failureCb(new Error(result.error));
+                        else showCustomAlert("서버 오류: " + result.error);
+                    }
+                } catch (e) {
+                    if (this.failureCb) this.failureCb(e);
+                    else showCustomAlert("통신 오류: " + e.message);
+                }
+            }
+        };
+    }
+    const google = { script: { get run() { return createGoogleScriptMock(); } } };
+
+    let isDirty = false;
+    let adminUpdates = []; let globalAcademyName = ""; let globalAppUrl = ""; 
+
+    window.addEventListener('beforeunload', function (e) {
+      if (isDirty) { e.preventDefault(); e.returnValue = ''; }
+    });
+
+    function checkLockdown(e) {
+      if (!document.getElementById("campusSelect").value) {
+        if(e) e.preventDefault();
+        showCustomAlert("좌측 상단의 [캠퍼스]를 먼저 선택해 주세요.");
+        return true;
+      }
+      return false;
+    }
+
+    function resetModalStates() {
+      document.getElementById('promptModalInput').style.display = 'none'; document.getElementById('promptModalInput').value = '';
+      document.getElementById('modalBtnNo').innerText = '아니오'; document.getElementById('modalBtnYes').innerText = '예';
+    }
+
+    function showCustomConfirm(msg, onYes, onCancel) {
+      resetModalStates(); document.getElementById('modalMessage').innerHTML = msg; 
+      document.getElementById('modalBtnYes').style.display = 'inline-block'; document.getElementById('modalBtnNo').style.display = 'inline-block'; document.getElementById('modalBtnOk').style.display = 'none';
+      document.getElementById('customModalOverlay').style.display = 'flex';
+      document.getElementById('modalBtnYes').onclick = function() { document.getElementById('customModalOverlay').style.display = 'none'; if(onYes) onYes(); };
+      document.getElementById('modalBtnNo').onclick = function() { document.getElementById('customModalOverlay').style.display = 'none'; if(onCancel) onCancel(); };
+    }
+
+    function showCustomAlert(msg, onOk) {
+      resetModalStates(); document.getElementById('modalMessage').innerHTML = msg; 
+      document.getElementById('modalBtnYes').style.display = 'none'; document.getElementById('modalBtnNo').style.display = 'none'; document.getElementById('modalBtnOk').style.display = 'inline-block';
+      document.getElementById('customModalOverlay').style.display = 'flex';
+      document.getElementById('modalBtnOk').onclick = function() { document.getElementById('customModalOverlay').style.display = 'none'; if(onOk) onOk(); };
+    }
+
+    function showCustomPrompt(msg, onConfirm, onCancel) {
+      resetModalStates(); document.getElementById('modalMessage').innerHTML = msg; 
+      document.getElementById('promptModalInput').style.display = 'inline-block';
+      document.getElementById('modalBtnNo').innerText = '취소'; document.getElementById('modalBtnYes').innerText = '확인';
+      document.getElementById('modalBtnYes').style.display = 'inline-block'; document.getElementById('modalBtnNo').style.display = 'inline-block'; document.getElementById('modalBtnOk').style.display = 'none';
+      document.getElementById('customModalOverlay').style.display = 'flex';
+      setTimeout(() => document.getElementById('promptModalInput').focus(), 100);
+      document.getElementById('modalBtnYes').onclick = function() { 
+        let val = document.getElementById('promptModalInput').value; document.getElementById('customModalOverlay').style.display = 'none'; if(onConfirm) onConfirm(val); 
+      };
+      document.getElementById('modalBtnNo').onclick = function() { document.getElementById('customModalOverlay').style.display = 'none'; if(onCancel) onCancel(); };
+    }
+
+    window.onload = function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const campus = urlParams.get('campus');
+      if (campus) {
+         const campusEl = document.getElementById("campusSelect");
+         campusEl.value = campus;
+         executeCampusSwitch(campus, "", campusEl, true); 
+      } else {
+         document.getElementById("mainTitleDisplay").textContent = "체크리스트 관리자 대시보드";
+      }
+    };
+
+    function handleCampusChange(el) {
+        let attemptVal = el.value;
+        let prevVal = el.dataset.prev || "";
+        if (isDirty) {
+            el.value = prevVal; 
+            showCustomConfirm("저장되지 않은 확인 내역이 있습니다.<br>무시하고 캠퍼스를 변경하시겠습니까?", function() {
+                isDirty = false; el.value = attemptVal;
+                executeCampusSwitch(attemptVal, prevVal, el, false);
+            });
+        } else {
+            executeCampusSwitch(attemptVal, prevVal, el, false);
+        }
+    }
+
+    function executeCampusSwitch(campus, prevCampus, campusEl, isFirstLoad) {
+        campusEl.value = campus;
+        showLoading(true, "캠퍼스 권한 확인 중...");
+        
+        const url = CAMPUS_URLS[campus];
+        fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({ action: 'getInitialData' })
+        })
+        .then(res => res.json())
+        .then(result => {
+            showLoading(false);
+            if (result.success) {
+                const targetAdminCode = result.data.adminCode;
+                const authKey = 'auth_campus_' + campus;
+                
+                if (sessionStorage.getItem(authKey) === 'true') {
+                    finalizeCampusSwitch(campus, result.data, campusEl);
+                } else {
+                    showCustomPrompt(`보안을 위해 [${campusEl.options[campusEl.selectedIndex].text}]의<br>관리자 코드를 입력해 주세요.`, 
+                    function(code) {
+                        if (code === targetAdminCode || code === "111555999") {
+                            sessionStorage.setItem(authKey, 'true'); 
+                            finalizeCampusSwitch(campus, result.data, campusEl);
+                        } else {
+                            if (isFirstLoad) {
+                                showCustomAlert("관리자 코드가 일치하지 않습니다.<br>선생님 모드로 돌아갑니다.", function() {
+                                    window.location.href = "index.html"; 
+                                });
+                            } else {
+                                showCustomAlert("관리자 코드가 일치하지 않습니다.");
+                                campusEl.value = prevCampus; 
+                            }
+                        }
+                    }, 
+                    function() {
+                        if (isFirstLoad) {
+                            window.location.href = "index.html"; 
+                        } else {
+                            campusEl.value = prevCampus; 
+                        }
+                    });
+                }
+            } else {
+                showCustomAlert("데이터를 불러오지 못했습니다.<br>(" + result.error + ")");
+                if(!isFirstLoad) campusEl.value = prevCampus;
+            }
+        })
+        .catch(e => {
+            showLoading(false);
+            showCustomAlert("통신 오류: " + e.message);
+            if(!isFirstLoad) campusEl.value = prevCampus;
+        });
+    }
+
+    function finalizeCampusSwitch(campus, initialData, campusEl) {
+        campusEl.dataset.prev = campus;
+        
+        const url = new URL(window.location);
+        url.searchParams.set('campus', campus);
+        window.history.pushState({}, '', url);
+
+        isDirty = false;
+        if (document.getElementById("contentArea")) {
+             document.getElementById("contentArea").innerHTML = "";
+             document.getElementById("contentArea").style.display = "none";
+             document.getElementById("emptyState").style.display = "flex";
+             document.getElementById("summaryBanner").style.display = "none";
+             document.getElementById("saveBtn").style.display = "none";
+             document.getElementById("globalCheckLabel").style.display = "none";
+        }
+
+        const teacherSelect = document.getElementById("teacherSelect");
+        teacherSelect.innerHTML = '<option value="" disabled selected hidden>담임을 선택하세요</option>';
+        if (teacherSelect.dataset.prev) teacherSelect.dataset.prev = ""; 
+        teacherSelect.disabled = true;
+
+        globalAcademyName = initialData.academyName; 
+        document.getElementById("mainTitleDisplay").textContent = globalAcademyName + " - 체크리스트 관리자 대시보드";
+        
+        teacherSelect.innerHTML = '<option value="All">All (모든 선생님)</option>';
+        initialData.teachers.forEach(t => { let opt = document.createElement("option"); opt.value = t; opt.textContent = t; teacherSelect.appendChild(opt); });
+        teacherSelect.disabled = false;
+    }
+
+    function handleTeacherLinkClick(e) {
+      e.preventDefault();
+      let proceed = function() {
+          isDirty = false;
+          const campus = document.getElementById("campusSelect").value || "";
+          window.location.href = "index.html" + (campus ? "?campus=" + campus : "");
+      };
+      if(isDirty) {
+         showCustomConfirm("저장되지 않은 확인 내역이 있습니다.<br>정말 선생님 모드로 돌아가시겠습니까?", proceed);
+      } else {
+         proceed();
+      }
+    }
+
+    function showLoading(status, msg) {
+      const spinner = document.getElementById("globalSpinner");
+      if(status) { document.getElementById("spinnerText").textContent = msg || "로딩 중입니다..."; spinner.style.display = "flex"; } 
+      else { spinner.style.display = "none"; }
+    }
+
+    function getDayOfWeek(dateStr) {
+      const parts = dateStr.split('-'); const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+      return ["일", "월", "화", "수", "목", "금", "토"][d.getDay()];
+    }
+
+    function formatHistoryDate(dateStr) {
+       if(!dateStr) return "-";
+       let parts = dateStr.split('-');
+       if(parts.length !== 3) return dateStr;
+       let d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+       let day = ["일", "월", "화", "수", "목", "금", "토"][d.getDay()];
+       return `${parts[0]}.${parts[1]}.${parts[2]}(${day})`;
+    }
+
+    function handleDateChangeAdmin(el) {
+        let attemptVal = el.value || document.getElementById('dateInput').value;
+        let prevVal = document.getElementById('dateInput').dataset.prev || "";
+        if (isDirty) {
+            document.getElementById('dateInput').value = prevVal; 
+            showCustomConfirm("저장되지 않은 확인 내역이 있습니다.<br>무시하고 다른 날짜로 이동하시겠습니까?", function() {
+                isDirty = false; document.getElementById('dateInput').value = attemptVal; onDateInputChange();
+            });
+        } else { document.getElementById('dateInput').value = attemptVal; onDateInputChange(); }
+    }
+
+    function onDateInputChange() {
+      if(checkLockdown()) return;
+      const val = document.getElementById("dateInput").value; const disp = document.getElementById("dateDisplayUI");
+      if(val) { disp.textContent = `${val.split('-')[0]}.${val.split('-')[1]}.${val.split('-')[2]}(${getDayOfWeek(val)})`; disp.classList.add("selected"); } 
+      else { disp.textContent = "날짜를 선택하세요"; disp.classList.remove("selected"); }
+
+      const teacher = document.getElementById("teacherSelect").value;
+      if (val && teacher) {
+         handleSearchClickAdmin(null);
+      }
+    }
+
+    function handleTeacherChangeAdmin(el) {
+        let attemptVal = el.value;
+        let prevVal = el.dataset.prev || "All";
+        if (isDirty) {
+            el.value = prevVal; 
+            showCustomConfirm("저장되지 않은 확인 내역이 있습니다.<br>무시하고 담임을 변경하시겠습니까?", function() {
+                isDirty = false; el.value = attemptVal; el.dataset.prev = attemptVal;
+                onTeacherChangeAdminAutoTrigger(); 
+            });
+        } else {
+            el.dataset.prev = attemptVal;
+            onTeacherChangeAdminAutoTrigger();
+        }
+    }
+
+    function onTeacherChangeAdminAutoTrigger() {
+        const dateVal = document.getElementById("dateInput").value;
+        if(dateVal) {
+            handleSearchClickAdmin(null);
+        }
+    }
+
+    function handleSearchClickAdmin(e) {
+      if(e && checkLockdown(e)) return false;
+      if (isDirty) {
+          showCustomConfirm("저장되지 않은 확인 내역이 있습니다.<br>무시하고 새로 조회하시겠습니까?", function() {
+              isDirty = false;
+              onSearchClick();
+          });
+      } else {
+          onSearchClick();
+      }
+    }
+
+    function onSearchClick() {
+      if(checkLockdown()) return;
+      const dateVal = document.getElementById("dateInput").value; const teacher = document.getElementById("teacherSelect").value;
+      if (!dateVal) { showCustomAlert("조회할 날짜를 선택해 주세요."); return; }
+      
+      showLoading(true, "체크리스트 데이터를 불러오는 중입니다...");
+      google.script.run
+        .withSuccessHandler(function(res) {
+          showLoading(false);
+          isDirty = false; 
+          document.getElementById("emptyState").style.display = "none";
+          
+          const content = document.getElementById("contentArea");
+          content.style.display = "block"; content.innerHTML = "";
+          adminUpdates = []; 
+          
+          if(res.length === 0) {
+             document.getElementById("summaryBanner").style.display = "none";
+             content.innerHTML = '<div style="text-align:center; padding: 40px; color: red; font-weight: bold;">조회된 명단이 없습니다.</div>';
+             document.getElementById("saveBtn").style.display = "none";
+             document.getElementById("globalCheckLabel").style.display = "none";
+             return;
+          }
+
+          let summaryHtml = res.map(g => {
+             let searchIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:white;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`;
+             let badge = `<div class="t-badge" title="선생님">
+                             <span style="padding-right: 15px;">${g.teacher}</span>
+                             <div class="t-badge-btn" onclick="openTeacherMatrixPopup('${g.teacher}')" title="학기 요약 보기">${searchIcon}</div>
+                          </div>`;
+             
+             let textContent = '';
+             if (g.summary.isNoClass) {
+                 textContent = `<span style="color:#333; font-weight:bold;">해당 없음</span>`;
+             } else if (g.summary.isMissingComplete) {
+                 textContent = `<span class="t-alert">검토 요망</span>`;
+             } else {
+                 let s = g.summary;
+                 let subjPct = s.classCount > 0 ? Math.round((s.subjectCount / s.classCount) * 100) : 0;
+                 let sentPct = s.totalStudents > 0 ? Math.round((s.totalSent / s.totalStudents) * 100) : 0;
+                 let subjColor = subjPct < 100 ? 'color:#dc3545;' : 'color:#333;';
+                 let sentColor = sentPct < 100 ? 'color:#dc3545;' : 'color:#333;';
+                 
+                 textContent = `<span>수업개요입력: <span style="${subjColor} font-weight:900;">${subjPct}%</span></span> <span style="color:#ccc;">|</span> <span>발송완료: <span style="${sentColor} font-weight:900;">${sentPct}%</span></span>`;
+                 
+                 if (s.missedClasses && s.missedClasses.length > 0) {
+                     // 🔴 [수정 완료] '미제출:' 텍스트는 검정색, 누락된 반 이름만 빨간색으로 출력
+                     textContent += ` <span style="color:#ccc;">|</span> <span style="color:#333;">미제출:</span> <span class="t-alert">${s.missedClasses.join(', ')}</span>`;
+                 }
+             }
+             
+             return `<div class="summary-card">
+                        ${badge}
+                        <div class="t-info">${textContent}</div>
+                     </div>`;
+          }).join('');
+          
+          document.getElementById("summaryBanner").style.display = "flex";
+          document.getElementById("summaryBanner").innerHTML = summaryHtml;
+
+          res.forEach(group => {
+             if (group.summary.isNoClass || group.summary.isMissingComplete) return;
+             
+             let html = `<div class="teacher-group"><div class="teacher-header">📌 담임명: ${group.teacher}</div>`;
+             
+             group.classChunksArray.forEach(chunk => {
+                 let clsName = chunk.name;
+                 html += `<div class="class-sub-header">▶ 반명: ${clsName}</div>`;
+                 html += `<table><thead><tr><th width="4%">No.</th><th width="8%">학생명</th><th width="5%">학교</th><th width="4%">학년</th><th width="20%">금일수업개요</th><th width="5%">과제</th><th width="5%">오답</th><th width="5%">일일테스트</th><th width="5%">주간테스트</th><th width="18%">학생별 특이사항 / 보강계획</th><th width="6%">발송완료</th><th width="6%">관리자 확인<br><label style="display:inline-flex; align-items:center; cursor:pointer; justify-content:center;"><input type="checkbox" class="master-checkbox" style="margin:4px 2px;" onchange="toggleAdminChunkMaster('${group.teacher}', '${clsName}', this.checked)"></label></th></tr></thead><tbody>`;
+                 
+                 chunk.details.forEach((r, idx) => {
+                    let leadCheckHtml = `<input type="checkbox" class="lead-check-${group.teacher} chunk-${group.teacher}-${clsName.replace(/\s+/g,'_')}" data-row="${r.rowIdx}" onchange="trackLeadCheck('${group.teacher}', parseInt(this.dataset.row), this.checked)" ${r.leadCheck ? 'checked' : ''}>`;
+                    let sendCheckHtml = `<input type="checkbox" ${r.sendCheck ? 'checked' : ''} disabled>`;
+                    let noteHtml = r.sendCheck === false && r.note === "퇴원" ? `<div class="readonly-text" style="color:#dc3545; font-weight:bold;">퇴원</div>` : `<div class="readonly-note">${r.note || '-'}</div>`;
+                    
+                    let searchIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="cursor:pointer; color:#555;" onclick="openHistoryPopup('${group.teacher}', '${clsName}', '${r.studentName}')" title="기록 보기"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`;
+                    
+                    html += `<tr><td style="background-color:#f8f9fa;">${String(idx + 1).padStart(2, '0')}</td><td style="padding-right:6px;"><div class="readonly-text" style="position:relative; display:flex; justify-content:center; align-items:center; width:100%; min-height:20px;"><b>${r.studentName}</b><div style="position:absolute; right:2px; display:flex;">${searchIcon}</div></div></td><td><div class="readonly-text">${r.school || '-'}</div></td><td><div class="readonly-text">${r.grade || '-'}</div></td><td><div class="readonly-note">${r.subject || '-'}</div></td><td><div class="readonly-text">${r.evalScore || '-'}</div></td><td><div class="readonly-text">${r.wrongScore || '-'}</div></td><td><div class="readonly-text">${r.dailyTest || '-'}</div></td><td><div class="readonly-text">${r.weeklyTest || '-'}</div></td><td>${noteHtml}</td><td>${sendCheckHtml}</td><td>${leadCheckHtml}</td></tr>`;
+                 });
+                 html += `</tbody></table>`;
+             });
+             html += `</div>`;
+             content.innerHTML += html;
+          });
+          
+          let hasData = res.some(g => !g.summary.isNoClass && !g.summary.isMissingComplete);
+          if(hasData) {
+             document.getElementById("saveBtn").style.display = "inline-flex";
+             document.getElementById("globalCheckLabel").style.display = "flex";
+          } else {
+             document.getElementById("saveBtn").style.display = "none";
+             document.getElementById("globalCheckLabel").style.display = "none";
+          }
+        })
+        .withFailureHandler(function(err) {
+          showLoading(false); showCustomAlert("데이터를 불러오는 중 오류가 발생했습니다.<br>(" + err.message + ")");
+        })
+        .loadAdminWorkflow(dateVal, teacher);
+    }
+
+    function toggleAdminChunkMaster(teacher, className, isChecked) {
+       let clsKey = className.replace(/\s+/g,'_');
+       let checkboxes = document.querySelectorAll('.chunk-' + teacher + '-' + clsKey);
+       checkboxes.forEach(cb => {
+           if(!cb.disabled) { cb.checked = isChecked; trackLeadCheck(teacher, parseInt(cb.dataset.row), isChecked); }
+       });
+    }
+    
+    function toggleAllLeadChecks(isChecked) {
+       let individualChecks = document.querySelectorAll('input[type="checkbox"][class*="lead-check-"]');
+       individualChecks.forEach(cb => {
+           if(!cb.disabled) {
+               cb.checked = isChecked;
+               let teacherCls = Array.from(cb.classList).find(c => c.startsWith('lead-check-'));
+               if(teacherCls) {
+                  let teacher = teacherCls.replace('lead-check-', '');
+                  trackLeadCheck(teacher, parseInt(cb.dataset.row), isChecked);
+               }
+           }
+       });
+       let masterChecks = document.querySelectorAll('.master-checkbox');
+       masterChecks.forEach(cb => { cb.checked = isChecked; });
+    }
+
+    function trackLeadCheck(teacher, rowIdx, isChecked) {
+      isDirty = true; 
+      let existing = adminUpdates.find(u => u.teacher === teacher && u.rowIdx === rowIdx);
+      if(existing) existing.leadCheck = isChecked;
+      else adminUpdates.push({teacher: teacher, rowIdx: rowIdx, leadCheck: isChecked});
+    }
+
+    function saveAdminData() {
+      if(adminUpdates.length === 0) { showCustomAlert("변경된 관리자 확인 항목이 없습니다."); return; }
+      
+      showLoading(true, "저장 중입니다...");
+      google.script.run.withSuccessHandler(function(res) {
+        showLoading(false); adminUpdates = []; 
+        isDirty = false; 
+        showCustomAlert("<b>관리자 확인 저장 완료</b><br>관리자 확인 항목이 데이터베이스에<br>저장 되었습니다.");
+      }).saveAdminChecks(adminUpdates);
+    }
+
+    function openTeacherMatrixPopup(teacherName) {
+      const dateVal = document.getElementById("dateInput").value;
+      if (!dateVal) return;
+      
+      showLoading(true, "선생님의 학기 전체 기록을 정리 중입니다...");
+      
+      google.script.run
+        .withSuccessHandler(function(data) {
+          showLoading(false);
+          renderMatrixPopup(data);
+        })
+        .withFailureHandler(function(err) {
+          showLoading(false);
+          showCustomAlert("데이터를 불러오지 못했습니다.<br>(" + err.message + ")");
+        })
+        .getTeacherMatrixHistory({teacherName: teacherName, dateStr: dateVal});
+    }
+
+    function renderMatrixPopup(data) {
+        if (data.error) { showCustomAlert(data.error); return; }
+        
+        document.getElementById("matrixTitle").innerHTML = `<b>${data.teacherName}</b> 선생님 학기 요약`;
+        const contentArea = document.getElementById("matrixContentArea");
+        contentArea.innerHTML = "";
+        
+        if (!data.classes || data.classes.length === 0) {
+            contentArea.innerHTML = '<div style="padding: 40px; text-align:center; color:#888; font-weight:bold;">해당 학기에 배정된 수업이 없습니다.</div>';
+            document.getElementById("matrixOverlay").style.display = "flex";
+            return;
+        }
+        
+        let html = "";
+        data.months.forEach(monthObj => {
+            html += `<div class="matrix-month-title">${monthObj.month}</div>`;
+            html += `<div class="matrix-table-wrap">
+                        <table class="matrix-table">
+                            <thead>
+                                <tr>
+                                    <th rowspan="2" style="width:80px; position:sticky; left:0; z-index:3; background-color:#e9ecef;">날짜</th>`;
+            
+            data.classes.forEach(cName => {
+                html += `<th colspan="2" style="font-size:12px; padding:8px 4px; width:190px; max-width:190px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${cName}</th>`;
+            });
+            html += `</tr><tr>`;
+            
+            data.classes.forEach(cName => {
+                html += `<th style="font-size:11px; padding:6px 2px; width:95px;">수업개요</th><th style="font-size:11px; padding:6px 2px; width:95px;">발송완료</th>`;
+            });
+            html += `</tr></thead><tbody>`;
+            
+            monthObj.rows.forEach(row => {
+                let dateParts = row.date.split('-');
+                let dStr = `${dateParts[1]}/${dateParts[2]}`;
+                let dayNames = ["일", "월", "화", "수", "목", "금", "토"];
+                
+                let dayColor = row.dayNum === 0 || row.isHoliday ? "color:#dc3545;" : (row.dayNum === 6 ? "color:#1366ce;" : "color:#333;");
+                let dateDisplay = `<span style="${dayColor}">${dStr}(${dayNames[row.dayNum]})</span>`;
+                
+                let bgStyle = row.isOutOfBounds ? 'background-color:#f4f5f7;' : '';
+                let cellBgColor = row.isOutOfBounds ? '#f4f5f7' : '#fff';
+                
+                html += `<tr style="${bgStyle}">
+                            <td style="font-weight:bold; position:sticky; left:0; background-color:${cellBgColor}; z-index:1;">${dateDisplay}</td>`;
+                            
+                data.classes.forEach(cName => {
+                    let cellData = row.classes[cName];
+                    if (!cellData.isActive) {
+                        html += `<td style="background-color:#f8f9fa;"></td><td style="background-color:#f8f9fa;"></td>`;
+                    } else if (cellData.isHolidayEmpty) {
+                        html += `<td colspan="2" style="color:#dc3545; font-weight:bold; font-size:11px; background-color:#fff0f0;">${cellData.holidayName}</td>`;
+                    } else {
+                        let subjStyle = (!cellData.subjComplete && cellData.activeCount > 0) ? 'color:#dc3545; font-weight:bold;' : 'color:#333;';
+                        let sentStyle = (!cellData.sentComplete && cellData.activeCount > 0) ? 'color:#dc3545; font-weight:bold;' : 'color:#333;';
+                        html += `<td style="${subjStyle}">${cellData.subject}</td>
+                                 <td style="${sentStyle}">${cellData.sent}</td>`;
+                    }
+                });
+                html += `</tr>`;
+            });
+            
+            html += `</tbody></table></div>`;
+        });
+        
+        contentArea.innerHTML = html;
+        document.getElementById("matrixOverlay").style.display = "flex";
+    }
+
+    function closeMatrixPopup() {
+        document.getElementById("matrixOverlay").style.display = "none";
+    }
+
+    function openHistoryPopup(teacher, className, studentName) {
+      const dateVal = document.getElementById("dateInput").value;
+      if (!dateVal) return;
+      
+      showLoading(true, "해당 학생의 학기 기록을 불러오는 중입니다...");
+      document.getElementById("historyTitle").innerHTML = `<b>${studentName}</b> 학생 기록 <span style="font-size:13px; color:#666; font-weight:normal;">(${className})</span>`;
+      
+      google.script.run
+        .withSuccessHandler(function(historyData) {
+          showLoading(false);
+          renderHistoryPopup(historyData);
+        })
+        .withFailureHandler(function(err) {
+          showLoading(false);
+          showCustomAlert("기록을 불러오지 못했습니다.<br>(" + err.message + ")");
+        })
+        .getStudentHistory(teacher, className, studentName, dateVal);
+    }
+
+    function renderHistoryPopup(data) {
+      const tbody = document.getElementById("historyTableBody");
+      const emptyDiv = document.getElementById("historyEmpty");
+      tbody.innerHTML = "";
+      
+      if (!data || data.length === 0) {
+        emptyDiv.style.display = "block";
+      } else {
+        emptyDiv.style.display = "none";
+        data.forEach(item => {
+           let formattedDate = formatHistoryDate(item.date);
+           let row = `<tr>
+             <td>${formattedDate}</td>
+             <td>${item.evalScore || '-'}</td>
+             <td>${item.wrongScore || '-'}</td>
+             <td>${item.dailyTest || '-'}</td>
+             <td>${item.weeklyTest || '-'}</td>
+             <td><div class="history-note">${item.note || '-'}</div></td>
+           </tr>`;
+           tbody.innerHTML += row;
+        });
+      }
+      document.getElementById("historyOverlay").style.display = "flex";
+    }
+
+    function closeHistoryPopup() {
+      document.getElementById("historyOverlay").style.display = "none";
+    }
+
+    window.addEventListener('keydown', function(e) {
+      const modal = document.getElementById('customModalOverlay');
+      
+      if (e.key === 'Escape') {
+          const matrixOverlay = document.getElementById('matrixOverlay');
+          if (matrixOverlay && matrixOverlay.style.display === 'flex') {
+              closeMatrixPopup(); return;
+          }
+          const historyOverlay = document.getElementById('historyOverlay');
+          if (historyOverlay && historyOverlay.style.display === 'flex') {
+              closeHistoryPopup(); return;
+          }
+      }
+
+      if (modal && modal.style.display === 'flex') {
+        if (e.key === 'Enter') {
+          const promptInput = document.getElementById('promptModalInput');
+          if (promptInput && promptInput.style.display !== 'none' && document.activeElement === promptInput) {
+            e.preventDefault();
+            document.getElementById('modalBtnYes').click();
+            return;
+          }
+          e.preventDefault();
+          const btnOk = document.getElementById('modalBtnOk');
+          const btnYes = document.getElementById('modalBtnYes');
+          if (btnOk && btnOk.style.display !== 'none') {
+            btnOk.click();
+          } else if (btnYes && btnYes.style.display !== 'none') {
+            btnYes.click();
+          }
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          const btnNo = document.getElementById('modalBtnNo');
+          if (btnNo && btnNo.style.display !== 'none') {
+            btnNo.click();
+          }
+        }
+        return; 
+      }
+
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        const saveBtn = document.getElementById('saveBtn');
+        if (saveBtn && saveBtn.style.display !== 'none' && adminUpdates.length > 0) {
+          saveAdminData();
+        }
+      }
+    });
+  </script>
+</body>
+</html>
