@@ -191,8 +191,8 @@
         <label>캠퍼스</label>
         <select id="campusSelect" onmousedown="this.dataset.prev = this.value;" onchange="handleCampusChange(this)" required>
           <option value="" disabled selected hidden>캠퍼스 선택</option>
-          <option value="dongtan">SG동탄청운학원</option>
           <option value="yeongtong">SG영통청운학원</option>
+          <option value="dongtan">SG동탄청운학원</option>
           <option value="yeongcheon">SG동탄청운학원-영천점</option>
         </select>
       </div>
@@ -234,9 +234,9 @@
 
   <script>
     const CAMPUS_URLS = {
-      "dongtan": "https://script.google.com/macros/s/AKfycbwMtIkLaAF85AYQgpWXsVmwftBnPKy0tOV65X8zKajto0srs4MM6pA4oRcczZHDqRcXNg/exec",
-      "yeongtong": "https://script.google.com/macros/s/AKfycbwV5hXkSNGT2_jkCrQakQieov2OswU9x-zCBSkquarMujUqoKXdSZO_ih0OyQxftodu/exec",
-      "yeongcheon": "https://script.google.com/macros/s/AKfycbw6lnnvzOvUykYBM32FvNb66m98e0frXWuQPV0bn-GVAfvVcMNR0ne5g04qu-W763_u/exec"
+      "yeongtong": "https://script.google.com/macros/s/AKfycbyrmjuqrwoQ02LYP7IdEGFn3unUBbxTQu1pDuFJ9uMrt7RauxIVMFC8y4n_Vypd6G0/exec",
+      "dongtan": "https://script.google.com/macros/s/AKfycby157DftfP3q7L7ur7SD4AN7ok9Wwi_R-4Ym3F4UTOcZUZnw7fFAbwbIiHO8ivZtveleg/exec",
+      "yeongcheon": "https://script.google.com/macros/s/AKfycbyNzSiDuORJn_jXkzGrETi8F4szGK1nGNVfmhLnEn6W52RkNzgBcKyv3d4PVOwbyf4j/exec"
     };
 
     function createGoogleScriptMock() {
