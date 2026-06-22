@@ -67,7 +67,6 @@
     .academy-header-bar { margin-top: 15px; background-color: #495057; color: #ffffff; padding: 10px 25px; font-size: 18px; font-weight: bold; letter-spacing: 0.5px; box-shadow: 0 2px 5px rgba(0,0,0,0.15); display: flex; justify-content: center; align-items: center; position: relative; }
     .academy-header-bar a { position: absolute; right: 25px; }
     
-    /* 🔴 [수정됨] 플로팅 버튼 좌우 배치 및 사이즈, 흰색 아이콘 반영 */
     .floating-btn-container { position: fixed; bottom: 25px; left: 25px; z-index: 9999; display: flex; flex-direction: row; gap: 12px; }
 
     .floating-setting-btn, .floating-upload-btn {
@@ -206,7 +205,7 @@
          <div style="display: flex; gap: 10px; align-items: center;">
            <input type="number" id="settingPastDays" style="width: 100px; padding: 8px; border: 1px solid #ced4da; border-radius: 4px; text-align: center; font-weight:bold;" min="0">
            <span style="font-size:13px; font-weight:bold; color:#555;">일 동안 노출</span>
-           <button class="modal-btn btn-ok" style="margin-left: auto; max-width: 80px; padding: 8px 15px;" onclick="saveSettings()">저장</button>
+           <button class="modal-btn btn-ok" style="margin-left: auto; max-width: 80px; padding: 8px 15px; border-radius: 50px;" onclick="saveSettings()">저장</button>
          </div>
       </div>
 
@@ -217,7 +216,7 @@
       </div>
 
       <div class="modal-buttons">
-        <button class="modal-btn btn-no" style="flex:none; min-width:120px;" onclick="closeSettingsModal()">취소</button>
+        <button class="modal-btn btn-no" style="flex:none; min-width:120px; border-radius: 50px; padding: 10px 20px;" onclick="closeSettingsModal()">취소</button>
       </div>
     </div>
   </div>
@@ -266,7 +265,7 @@
       </div>
 
       <div class="modal-buttons" style="margin-bottom: 5px;">
-        <button class="modal-btn btn-no" style="flex:none; min-width:120px;" onclick="closeUploadModal()">취소</button>
+        <button class="modal-btn btn-no" style="flex:none; min-width:120px; border-radius: 50px; padding: 10px 20px;" onclick="closeUploadModal()">취소</button>
       </div>
     </div>
   </div>
@@ -360,6 +359,7 @@
   </div>
 
   <script>
+    // 🔴 원장님의 지시대로 학원 계정 웹앱 주소로 완벽 고정
     const CAMPUS_URLS = {
       "yeongtong": "https://script.google.com/macros/s/AKfycbzVdG6stb-OvSnFEzFm34L_4HcMr0C-hsU9xCgzp_1W0AJcsn1ykbrsq7SmWcwwaTDG/exec",
       "dongtan": "https://script.google.com/macros/s/AKfycbzRcme0LEJ5O3PEqjekUkGSA-zBl_a1Kgb1aLR85A9DBIOA8G-u8uGWAMbx1ThLLw4ITQ/exec",
@@ -380,7 +380,6 @@
             getTeacherMatrixHistory: function(payload) { this._fetch('getTeacherMatrixHistory', payload); },
             uploadNewTerm: function(payload) { this._fetch('uploadNewTerm', payload); }, 
             
-            // 🔴 백엔드 설정 및 백업 API 맵핑
             getSettings: function() { this._fetch('getSettings'); },
             saveSettings: function(payload) { this._fetch('saveSettings', payload); },
             apiIntegratedBackup: function() { this._fetch('apiIntegratedBackup'); },
@@ -979,7 +978,7 @@
         }
     }
 
-    // 🔴 ⚙️ 환경설정 관련 프론트엔드 로직
+    // 🔴 환경설정 모달 열기 및 설정값 로드
     function openSettingsModal() {
         if(checkLockdown()) return;
         document.getElementById('settingsModalOverlay').style.display = 'flex';
@@ -997,6 +996,7 @@
         document.getElementById('settingsModalOverlay').style.display = 'none';
     }
 
+    // 🔴 환경설정 저장
     function saveSettings() {
         let days = document.getElementById('settingPastDays').value;
         if(days === "" || days < 0) { showCustomAlert("올바른 일수(숫자)를 입력해 주세요."); return; }
@@ -1011,6 +1011,7 @@
         }).saveSettings({ pastTermDays: days });
     }
 
+    // 🔴 1년 전 과거 데이터 통합 백업 및 삭제 로직
     function runIntegratedBackup() {
         showCustomConfirm("오늘 기준 <b>1년 전</b> 과거 데이터를<br>통합 백업하시겠습니까?", function() {
             closeSettingsModal();
