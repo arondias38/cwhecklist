@@ -184,11 +184,13 @@
 </head>
 <body>
 
+  <!-- 🔴 오리지널 무결점 Feather Icon(가장 얇고 안정적인 선 형태)으로 원상복구 -->
   <div class="floating-btn-container">
     <button class="floating-setting-btn" onclick="openSettingsModal()" title="환경설정">
       <div class="btn-icon-wrap">
-        <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="white">
-          <path d="M480-345q-56 0-95.5-39.5T345-480q0-56 39.5-95.5T480-615q56 0 95.5 39.5T615-480q0 56-39.5 95.5T480-345Zm0-75q25 0 42.5-17.5T540-480q0-25-17.5-42.5T480-540q-25 0-42.5 17.5T420-480q0 25 17.5 42.5T480-420Zm-11-209-17-111q-16-5-33-13.5t-33-21.5l-105 45-66-116 88-70q-2-8-2-16t0-16q0-8 2-16t2-16l-88-70 66-116 105 45q15-12 32-20t34-13l17-113h134l17 113q17 5 33.5 13.5T703-792l105-46 66 116-88 70q2 8 2.5 15.5t.5 16.5q0 8-.5 16.5T786-588l88 70-66 116-105-45q-15 13-31.5 21T639-413l-17 113H469Zm55-156Zm-69 82h88l14-106q27-8 51.5-23.5T631-600l102 44 42-74-87-70q4-13 5.5-27t1.5-28q0-14-1.5-28t-5.5-27l87-70-42-74-102 44q-21-20-45.5-35.5T536-834l-14-106h-86l-14 106q-27 8-52.5 23.5T327-775l-102-44-42 74 87 70q-4 13-5.5 27t-1.5 28q0 14 1.5 28t5.5 27l-87 70 42 74 102-44q21 20 46 35.5t52 23.5l14 106Z"/>
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
         </svg>
       </div>
       <div class="btn-text-wrap">환경설정</div>
@@ -213,6 +215,7 @@
     </div>
   </div>
 
+  <!-- 환경설정 모달 -->
   <div class="modal-overlay" id="settingsModalOverlay">
     <div class="modal-box" style="width: 480px; padding: 25px;">
       <div style="font-size: 18px; font-weight: 900; background-color: #6c757d; color: white; padding: 14px 0; border-radius: 12px; margin-bottom: 20px;">환경설정</div>
@@ -278,11 +281,13 @@
       </div>
 
       <div id="termManageContent" style="flex: 1; overflow-y: auto; padding: 8px 20px 15px 20px;">
-        </div>
+        <!-- Javascript renders items here -->
+      </div>
       
     </div>
   </div>
 
+  <!-- 새 학기 명단 업로드 모달 -->
   <div class="modal-overlay" id="uploadModalOverlay">
     <div class="modal-box" style="width: 480px; padding: 25px;">
       <div style="font-size: 18px; font-weight: 900; background-color: #1366ce; color: white; padding: 14px 0; border-radius: 12px; margin-bottom: 15px;">새 학기 명단 업로드</div>
