@@ -857,8 +857,8 @@
                  textContent = `<span class="t-alert">검토 요망</span>`;
              } else {
                  let s = g.summary;
-                 let subjPct = s.classCount > 0 ? Math.round((s.subjectCount / s.classCount) * 100) : 0;
-                 let sentPct = s.totalStudents > 0 ? Math.round((s.totalSent / s.totalStudents) * 100) : 0;
+                 let subjPct = s.classCount > 0 ? Math.min(100, Math.round((s.subjectCount / s.classCount) * 100)) : 0;
+                 let sentPct = s.totalStudents > 0 ? Math.min(100, Math.round((s.totalSent / s.totalStudents) * 100)) : 0;
                  let subjColor = subjPct < 100 ? 'color:#dc3545;' : 'color:#333;';
                  let sentColor = sentPct < 100 ? 'color:#dc3545;' : 'color:#333;';
                  
