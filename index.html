@@ -189,6 +189,21 @@
       .right-panel { border-left: none; border-top: 4px solid #1366ce; margin-top: 10px; }
       .table-fixed-wrapper { max-height: none; }
     }
+    
+    .running-dog {
+      position: fixed; bottom: 15px; right: -80px; 
+      font-size: 55px; z-index: 10002; pointer-events: none;
+      /* 좌우 이동 4초, 상하 통통 튀기 0.25초 무한반복 */
+      animation: runAcross 4s linear forwards, dogBounce 0.25s alternate infinite ease-in-out;
+    }
+    @keyframes runAcross {
+      0% { right: -80px; }
+      100% { right: 110vw; }
+    }
+    @keyframes dogBounce {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(-15px); }
+    }
   </style>
 </head>
 <body>
@@ -1252,9 +1267,18 @@
         const bubble = document.getElementById("eggBubble");
         bubble.classList.add("show");
         createCherryBlossoms();
+        
+        // 👇 강아지 생성 및 달리기 로직 추가
+        const dog = document.createElement("div");
+        dog.classList.add("running-dog");
+        dog.innerText = "🐕"; 
+        document.body.appendChild(dog);
+        setTimeout(() => { dog.remove(); }, 4000); // 4초 후 화면 밖으로 나가면 삭제
+        // 👆 
+
         setTimeout(() => { bubble.classList.remove("show"); }, 3000); 
       }
-    } 
+    }
   </script>
 </body>
 </html>
