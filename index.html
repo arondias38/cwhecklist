@@ -1009,60 +1009,108 @@
              }
           };
 
-          // 🟢 [NEW] 엑셀 스마트 다중 붙여넣기 로직
+          // 🟢 [NEW] 엑셀 스마트 다중 붙여넣기 로직 (줄바꿈/큰따옴표 완벽 해독 및 빈 줄 방어)
           input.onpaste = function(e) {
              e.preventDefault();
              let pasteData = (e.clipboardData || window.clipboardData).getData('text');
              if (!pasteData) return;
 
-             // 줄바꿈 기준으로 행(Row) 단위 분리
-             let rows = pasteData.split(/\r\n|\n|\r/);
-             // 엑셀에서 복사 시 마지막에 생기는 빈 줄 제거
-             if(rows[rows.length - 1] === "") rows.pop();
+             // 엑셀 클립보드 데이터를 한 글자씩 읽어내는 스마트 파서 로직
+             let rows = [];
+             let currentRow = [];
+             let currentCell = "";
+             let inQuotes = false;
+
+             for (let i = 0; i < pasteData.length; i++) {
+                 let char = pasteData[i];
+                 let nextChar = pasteData[i + 1];
+
+                 if (inQuotes) {
+                     // 큰따옴표 내부일 때
+                     if (char === '"' && nextChar === '"') {
+                         // 엑셀이 겹쳐놓은 진짜 큰따옴표("")는 하나(")로 복원
+                         currentCell += '"';
+                         i++; // 겹쳐진 따옴표 하나는 건너뜀
+                     } else if (char === '"') {
+                         // 겉면을 감싸던 가짜 큰따옴표가 끝나는 지점
+                         inQuotes = false;
+                     } else {
+                         // 일반 글자나 줄바꿈은 그대로 유지
+                         currentCell += char;
+                     }
+                 } else {
+                     // 큰따옴표 외부일 때
+                     if (char === '"' && currentCell === "") {
+                         // 셀의 시작이 큰따옴표라면 엑셀이 씌운 가짜 겉면으로 인식
+                         inQuotes = true;
+                     } else if (char === '\t') {
+                         // 탭을 만나면 다음 칸(열)으로 이동
+                         currentRow.push(currentCell);
+                         currentCell = "";
+                     } else if (char === '\r' && nextChar === '\n') {
+                         // 윈도우 줄바꿈(CRLF)을 만나면 다음 줄(행)로 이동
+                         currentRow.push(currentCell);
+                         rows.push(currentRow);
+                         currentRow = [];
+                         currentCell = "";
+                         i++; // \n 건너뜀
+                     } else if (char === '\n' || char === '\r') {
+                         // 일반 줄바꿈을 만나면 다음 줄(행)로 이동
+                         currentRow.push(currentCell);
+                         rows.push(currentRow);
+                         currentRow = [];
+                         currentCell = "";
+                     } else {
+                         currentCell += char;
+                     }
+                 }
+             }
+             // 마지막 남은 데이터 밀어넣기
+             if (currentCell !== "" || currentRow.length > 0) {
+                 currentRow.push(currentCell);
+                 rows.push(currentRow);
+             }
+
+             // 엑셀에서 복사 시 마지막에 생기는 의미 없는 빈 줄 완벽 제거
+             if (rows.length > 0 && rows[rows.length - 1].length === 1 && rows[rows.length - 1][0] === "") {
+                 rows.pop();
+             }
 
              let startRow = parseInt(this.dataset.row);
              let startCol = parseInt(this.dataset.col);
 
-             // 데이터베이스와 매칭되는 열 인덱스 맵핑
              let colFieldMap = { 0: 'name', 1: 'school', 2: 'grade', 3: 'evalScore', 4: 'wrongScore', 5: 'dailyTest', 6: 'weeklyTest', 7: 'note' };
 
              for (let i = 0; i < rows.length; i++) {
                  let targetRowIdx = startRow + i;
-                 // 현재 앱에 띄워진 학생 수를 초과하는 복사 데이터는 안전하게 무시
+                 // 앱에 띄워진 학생 수를 초과하면 방어
                  if (targetRowIdx >= studentList.length) break;
-                 // 퇴원생 등 입력 불가 상태인 칸을 마주치면 해당 줄은 통과(Skip)
+                 // 퇴원생 등 입력 불가 칸 통과(Skip)
                  if (studentList[targetRowIdx].isDischarged || studentList[targetRowIdx].pendingDischarge) continue;
 
-                 // 탭(Tab) 기준으로 열(Column) 단위 분리
-                 let cols = rows[i].split('\t');
+                 // 실수로 복사된 완전히 텅 빈 줄(행)은 데이터 덮어쓰기 방지
+                 let isRowEmpty = rows[i].every(cell => cell.trim() === "");
+                 if (isRowEmpty) continue;
+
+                 let cols = rows[i];
                  for (let j = 0; j < cols.length; j++) {
                      let targetColIdx = startCol + j;
-                     // 화면의 마지막 칸(특이사항)을 넘어가는 데이터는 무시
                      if (targetColIdx > 7) break;
                      
                      let field = colFieldMap[targetColIdx];
                      let val = cols[j];
-                     
-                     // 엑셀에서 특수문자나 줄바꿈이 있는 경우 생기는 앞뒤 큰따옴표("") 제거
-                     if (val.startsWith('"') && val.endsWith('"')) {
-                         val = val.substring(1, val.length - 1).replace(/""/g, '"');
-                     }
 
-                     // 앱 임시 저장소(학생 데이터 배열) 업데이트
                      studentList[targetRowIdx][field] = val;
                      
-                     // 화면(DOM) 시각적 업데이트
                      let targetInput = document.querySelector(`.grid-nav[data-row="${targetRowIdx}"][data-col="${targetColIdx}"]`);
                      if (targetInput && !targetInput.disabled) {
                          targetInput.value = val;
                          targetInput.classList.remove('empty-placeholder');
-                         // 텍스트에어리어(특이사항)인 경우 내용에 맞게 높이 자동 조절
                          if (targetInput.tagName === 'TEXTAREA') autoResize(targetInput);
                      }
                  }
              }
              
-             // 시스템 동기화 및 복사 텍스트(미리보기) 즉시 갱신
              isDirty = true;
              saveLocalDraft();
              updatePreview();
