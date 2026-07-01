@@ -20,7 +20,7 @@
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
     .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; justify-content: center; align-items: center; }
-    .modal-box { background: white; width: 340px; border-radius: 12px; padding: 25px 20px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+    .modal-box { background: white; width: 340px; max-width: 90vw; border-radius: 12px; padding: 25px 20px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: width 0.2s ease-in-out; }
     .modal-message { font-size: 15px; font-weight: 600; color: #333; line-height: 1.5; margin-bottom: 20px; white-space: pre-wrap; word-break: keep-all; }
     .prompt-input { width: 80%; padding: 10px; margin-bottom: 20px; border: 1px solid #ced4da; border-radius: 6px; font-size: 16px; font-weight: bold; text-align: center; outline: none; font-family: 'Pretendard', sans-serif; letter-spacing: 2px; }
     .prompt-input::placeholder { color: #b0b0b0; font-weight: normal; }
@@ -266,10 +266,13 @@
          <div class="setting-input"></div>
       </div>
 
-      <div class="setting-section last">
+      <div class="setting-section last" style="height: 140px;">
          <div class="setting-header">
            <div style="font-size:14px; font-weight:bold; color:#333;">💾 데이터 통합 백업 및 삭제</div>
-           <button class="modal-btn" style="background-color:#dc3545; color:white; border-radius: 50px; padding: 4px 15px; font-size: 12px; height: 28px; min-width: 60px; border:none; cursor:pointer; line-height: 1;" onclick="runIntegratedBackup()">데이터 백업 / 삭제</button>
+           <div style="display:flex; gap: 5px;">
+               <button class="modal-btn" style="background-color:#6c757d; color:white; border-radius: 50px; padding: 4px 15px; font-size: 12px; height: 28px; border:none; cursor:pointer;" onclick="viewBackupLogs()">로그 확인</button>
+               <button class="modal-btn" style="background-color:#dc3545; color:white; border-radius: 50px; padding: 4px 15px; font-size: 12px; height: 28px; min-width: 60px; border:none; cursor:pointer; line-height: 1;" onclick="runIntegratedBackup()">데이터 백업 / 삭제</button>
+           </div>
          </div>
          <div class="setting-desc">오늘 기준 <b>1년 전</b> 과거 데이터를 백업하고 원본에서 영구 삭제합니다.<br>(※ <span style="color:#dc3545; font-weight:bold;">백업 후 삭제된 학기는 추후 조회 불가</span>)</div>
          <div class="setting-input"></div> 
@@ -471,6 +474,7 @@
             saveSettings: function(payload) { this._fetch('saveSettings', payload); },
             apiIntegratedBackup: function() { this._fetch('apiIntegratedBackup'); },
             apiIntegratedDelete: function(payload) { this._fetch('apiIntegratedDelete', payload); },
+            getBackupLogs: function() { this._fetch('getBackupLogs'); },
             
             getTermListForEdit: function() { this._fetch('getTermListForEdit'); },
             applyTermModifications: function(payload) { this._fetch('applyTermModifications', payload); },
@@ -546,23 +550,33 @@
       document.getElementById('modalBtnNo').innerText = '아니오'; document.getElementById('modalBtnYes').innerText = '예';
     }
 
-    function showCustomConfirm(msg, onYes, onCancel) {
-      resetModalStates(); document.getElementById('modalMessage').innerHTML = msg; 
+    // 🟢 팝업 너비를 동적으로 조절할 수 있도록 파라미터(customWidth) 추가
+    function showCustomConfirm(msg, onYes, onCancel, customWidth) {
+      resetModalStates(); 
+      document.getElementById('modalMessage').innerHTML = msg; 
+      document.querySelector('#customModalOverlay .modal-box').style.width = customWidth ? customWidth : '340px';
+      
       document.getElementById('modalBtnYes').style.display = 'inline-block'; document.getElementById('modalBtnNo').style.display = 'inline-block'; document.getElementById('modalBtnOk').style.display = 'none';
       document.getElementById('customModalOverlay').style.display = 'flex';
       document.getElementById('modalBtnYes').onclick = function() { document.getElementById('customModalOverlay').style.display = 'none'; if(onYes) onYes(); };
       document.getElementById('modalBtnNo').onclick = function() { document.getElementById('customModalOverlay').style.display = 'none'; if(onCancel) onCancel(); };
     }
 
-    function showCustomAlert(msg, onOk) {
-      resetModalStates(); document.getElementById('modalMessage').innerHTML = msg; 
+    function showCustomAlert(msg, onOk, customWidth) {
+      resetModalStates(); 
+      document.getElementById('modalMessage').innerHTML = msg; 
+      document.querySelector('#customModalOverlay .modal-box').style.width = customWidth ? customWidth : '340px';
+      
       document.getElementById('modalBtnYes').style.display = 'none'; document.getElementById('modalBtnNo').style.display = 'none'; document.getElementById('modalBtnOk').style.display = 'inline-block';
       document.getElementById('customModalOverlay').style.display = 'flex';
       document.getElementById('modalBtnOk').onclick = function() { document.getElementById('customModalOverlay').style.display = 'none'; if(onOk) onOk(); };
     }
 
     function showCustomPrompt(msg, onConfirm, onCancel) {
-      resetModalStates(); document.getElementById('modalMessage').innerHTML = msg; 
+      resetModalStates(); 
+      document.getElementById('modalMessage').innerHTML = msg; 
+      document.querySelector('#customModalOverlay .modal-box').style.width = '340px';
+      
       document.getElementById('promptModalInput').style.display = 'inline-block';
       document.getElementById('modalBtnNo').innerText = '취소'; document.getElementById('modalBtnYes').innerText = '확인';
       document.getElementById('modalBtnYes').style.display = 'inline-block'; document.getElementById('modalBtnNo').style.display = 'inline-block'; document.getElementById('modalBtnOk').style.display = 'none';
@@ -1357,6 +1371,37 @@
         }).applyTermModifications(mods);
     }
 
+    // 🟢 [수정됨] 동적 너비를 적용하여 텍스트 줄바꿈 방지
+    function viewBackupLogs() {
+        showLoading(true, "백업/삭제 실행 로그를 불러오는 중입니다...");
+        google.script.run.withSuccessHandler(function(logs) {
+            showLoading(false);
+            let msg = "<div style='max-height: 300px; overflow-y:auto; font-size:13px; text-align:left; border: 1px solid #ced4da; border-radius:4px; padding: 0;'>";
+            if (logs.length === 0) {
+                msg += "<div style='padding: 30px; text-align:center; color:#888; font-weight:bold;'>백업 및 삭제 실행 기록이 없습니다.</div>";
+            } else {
+                msg += "<table style='width:100%; border-collapse:collapse; margin:0; text-align:center;'>" +
+                       "<tr style='background:#f8f9fa; border-bottom:1px solid #ccc;'>" +
+                       "<th style='padding:10px 6px; position:sticky; top:0; background:#f8f9fa; white-space:nowrap;'>실행 일시</th>" +
+                       "<th style='padding:10px 6px; position:sticky; top:0; background:#f8f9fa; white-space:nowrap;'>대상 학기</th>" +
+                       "<th style='padding:10px 6px; position:sticky; top:0; background:#f8f9fa; white-space:nowrap;'>삭제 건수</th>" +
+                       "<th style='padding:10px 6px; position:sticky; top:0; background:#f8f9fa; white-space:nowrap;'>비고</th>" +
+                       "</tr>";
+                logs.forEach(l => {
+                    msg += `<tr style='border-bottom:1px solid #eee;'><td style='padding:8px 6px; white-space:nowrap;'>${l.date}</td><td style='padding:8px 6px;'>${l.terms}</td><td style='padding:8px 6px; white-space:nowrap;'>${l.rows}</td><td style='padding:8px 6px; white-space:nowrap; font-weight:bold; color:#1a3978;'>${l.note}</td></tr>`;
+                });
+                msg += "</table>";
+            }
+            msg += "</div>";
+            // 650px 너비로 팝업 호출
+            showCustomAlert("<div style='font-size:16px; font-weight:900; color:#1a3978; margin-bottom:15px;'>💾 백업/삭제 실행 로그</div>" + msg, null, '650px');
+        }).withFailureHandler(function(err){
+            showLoading(false);
+            showCustomAlert("· Error: 로그를 불러오는 중 오류가 발생했습니다.<br>(" + err.message.replace(/^Error:\s*/, '').trim() + ")");
+        }).getBackupLogs();
+    }
+
+    // 🟢 [수정됨] 엑셀 다운로드 버튼 위치 변경, 흰색 디스크 아이콘 삽입, 구분선 추가
     function runIntegratedBackup() {
         showCustomConfirm("오늘 기준 <b>1년 전</b> 과거 데이터를<br>통합 백업하시겠습니까?", function() {
             closeSettingsModal();
@@ -1367,10 +1412,22 @@
                 if(res.status === "none") {
                     showCustomAlert("백업할 1년 전 과거 데이터가 없습니다.");
                 } else if(res.status === "success") {
-                    currentBackupPayload = { targetTermNames: res.targetTermNames, maxEndDate: res.maxEndDate };
-                    showCustomConfirm(`✔ <b>데이터 백업 성공!</b> <a href="${res.fileUrl}" target="_blank" style="color:#1366ce; font-weight:bold;">[백업 파일 확인하기]</a><br><br>• 백업된 과거 학기: ${res.termCount}개<br>• 백업된 선생님 기록: ${res.rowCount}행<br><br><span style="color:#dc3545; font-weight:bold;">원본 시트에서 방금 백업한 과거 기록들을<br>완전히 삭제할까요?</span><br><span style="font-size:12px; color:#666; font-weight:normal;">(유지하려면 '아니오'를 누르세요)</span>`, 
+                    currentBackupPayload = { targetTermNames: res.targetTermNames, maxEndDate: res.maxEndDate, logRow: res.logRow };
+                    
+                    let excelUrl = `https://docs.google.com/spreadsheets/d/${res.fileId}/export?format=xlsx`;
+                    
+                    let msg = `✔ <b>데이터 백업 성공!</b> <a href="${res.fileUrl}" target="_blank" style="color:#1366ce; font-weight:bold;">[백업 파일 확인하기]</a><br><br>` +
+                              `• 백업된 과거 학기: ${res.termCount}개<br>• 백업된 선생님 기록: ${res.rowCount}행<br><br>` +
+                              `<a href="${excelUrl}" target="_blank" style="display:inline-flex; align-items:center; justify-content:center; gap:6px; margin-bottom:15px; padding:8px 18px; background-color:#28a745; color:white; font-size:13px; font-weight:bold; border-radius:50px; text-decoration:none; box-shadow:0 2px 4px rgba(0,0,0,0.15);">` +
+                              `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>` +
+                              `백업 파일 다운로드</a>` +
+                              `<hr style="border:none; border-top:1px solid #dee2e6; margin-bottom:15px; width:100%;">` +
+                              `<span style="color:#dc3545; font-weight:bold;">원본 시트에서 방금 백업한 과거 기록들을<br>완전히 삭제할까요?</span><br>` +
+                              `<span style="font-size:12px; color:#666; font-weight:normal;">(유지하려면 '아니오'를 누르세요)</span>`;
+                              
+                    showCustomConfirm(msg, 
                     function() { 
-                        showLoading(true, "원본에서 과거 데이터를 영구 삭제 중입니다...");
+                        showLoading(true, "원본에서 과거 데이터를 초고속 영구 삭제 중입니다...");
                         google.script.run.withSuccessHandler(function() {
                             showLoading(false);
                             showCustomAlert("✔ <b>삭제 완료!</b><br>과거 데이터가 원본 시트에서<br>안전하게 삭제되었습니다.", function() {
